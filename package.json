@@ -1,8 +1,8 @@
 {
-  "name": "g",
+  "name": "open-in-explorer",
   "displayName": "open-in-explorer",
   "description": "",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "publisher": "Takashivscode",
   "repository": {
     "type": "git",
