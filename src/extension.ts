@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import * as child_process from 'child_process';
+import * as childProcess from 'child_process';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 
@@ -28,10 +28,14 @@ class WindowsHandler implements PlatformHandler {
     }
 
     private executeCommand(command: string): void {
-        child_process.exec(command, (err, stdout, stderr) => {
+        childProcess.exec(command, (err, stdout, stderr) => {
             if (err) {
                 console.error(err);
-                vscode.window.showErrorMessage(`エクスプローラーを開く際にエラーが発生しました: ${err.message || ""}`);
+                // vscode.window.showErrorMessage(`エクスプローラーを開く際にエラーが発生しました: ${err.message || ""}`); // エラーメッセージは表示しない
+                // エラーを無視。ただし、デバッグ用にコンソールには出力
+            }
+            if (stderr){
+                console.error("stderr:", stderr); // stderr もコンソールに出力
             }
         });
     }
@@ -54,10 +58,14 @@ class MacOSHandler implements PlatformHandler {
     }
 
     private executeCommand(command: string): void {
-        child_process.exec(command, (err) => {
+        childProcess.exec(command, (err, stdout, stderr) => {
             if (err) {
                 console.error(err);
-                vscode.window.showErrorMessage(`Finderを開く際にエラーが発生しました: ${err.message || ""}`);
+                //vscode.window.showErrorMessage(`Finderを開く際にエラーが発生しました: ${err.message || ""}`); //エラーメッセージは表示しない
+                 // エラーを無視。ただし、デバッグ用にコンソールには出力
+            }
+            if (stderr){
+                console.error("stderr:", stderr);  // stderr もコンソールに出力
             }
         });
     }
@@ -110,11 +118,11 @@ export async function activate(context: vscode.ExtensionContext) {
 
             // 拡張子が .txt かどうかをチェック
             if (isFile && path.extname(selectedText).toLowerCase() === '.txt') {
-                // VS Code で新規ファイルとして開く
+                // VS Code でファイルとして開く
                 const uri = vscode.Uri.file(selectedText);
                 try {
                     const document = await vscode.workspace.openTextDocument(uri);
-                    await vscode.window.showTextDocument(document, vscode.ViewColumn.Beside); // 新しいタブで開く
+                    await vscode.window.showTextDocument(document, { preview: false, viewColumn: vscode.ViewColumn.Active }); //既存のタブの横に開く
                 }
                 catch(error: any){
                      vscode.window.showErrorMessage(ERROR_MESSAGES.TXT_FILE_OPEN_ERROR + error.message);
