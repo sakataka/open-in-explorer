@@ -3,15 +3,42 @@ import * as childProcess from 'child_process';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 
+// 共通のコマンド実行関数
+function executeCommand(command: string): void {
+    childProcess.exec(command, (err, stdout, stderr) => {
+        if (err) {
+            console.error(err);
+        }
+        if (stderr) {
+            console.error("stderr:", stderr);
+        }
+    });
+}
+
+// ファイルがテキストかどうかを簡易判定する関数
+async function isTextFile(filePath: string): Promise<boolean> {
+    try {
+        const fileHandle = await fs.open(filePath, 'r');
+        const buffer = Buffer.alloc(512);
+        const { bytesRead } = await fileHandle.read(buffer, 0, 512, 0);
+        await fileHandle.close();
+        // nullバイトが含まれていればバイナリとみなす
+        return !buffer.slice(0, bytesRead).includes(0);
+    } catch (error) {
+        console.error("isTextFile error:", error);
+        return false;
+    }
+}
+
 // プラットフォームハンドラのインターフェース
 interface PlatformHandler {
-    validatePath(selectedText: string): string | null; // Validation error message or null if valid
+    validatePath(selectedText: string): string | null; // エラー文または null
     openPath(selectedText: string, isFile: boolean): void;
 }
 
 // Windows用ハンドラ
 class WindowsHandler implements PlatformHandler {
-    private readonly UNC_PATH_REGEX = /^\\\\[^\s\\]+\\[^\s\\]+/; // Improved UNC path regex
+    private readonly UNC_PATH_REGEX = /^\\\\[^\s\\]+\\[^\s\\]+/;
 
     validatePath(selectedText: string): string | null {
         if (!this.UNC_PATH_REGEX.test(selectedText)) {
@@ -24,50 +51,22 @@ class WindowsHandler implements PlatformHandler {
         const command = isFile
             ? `explorer.exe /select,"${selectedText}"`
             : `explorer.exe "${selectedText}"`;
-        this.executeCommand(command);
-    }
-
-    private executeCommand(command: string): void {
-        childProcess.exec(command, (err, stdout, stderr) => {
-            if (err) {
-                console.error(err);
-                // vscode.window.showErrorMessage(`エクスプローラーを開く際にエラーが発生しました: ${err.message || ""}`); // エラーメッセージは表示しない
-                // エラーを無視。ただし、デバッグ用にコンソールには出力
-            }
-            if (stderr){
-                console.error("stderr:", stderr); // stderr もコンソールに出力
-            }
-        });
+        executeCommand(command);
     }
 }
 
 // macOS用ハンドラ
 class MacOSHandler implements PlatformHandler {
     validatePath(selectedText: string): string | null {
-        // More robust validation (example, you might need a more complex regex or a different approach)
-        if (!selectedText.startsWith('/') || selectedText.includes('..')) { // Prevent ".." for security
+        if (!selectedText.startsWith('/') || selectedText.includes('..')) {
             return "選択されたテキストは有効なmacOSの絶対パスではありません。";
         }
-
         return null;
     }
 
     openPath(selectedText: string, isFile: boolean): void {
         const command = isFile ? `open -R "${selectedText}"` : `open "${selectedText}"`;
-        this.executeCommand(command);
-    }
-
-    private executeCommand(command: string): void {
-        childProcess.exec(command, (err, stdout, stderr) => {
-            if (err) {
-                console.error(err);
-                //vscode.window.showErrorMessage(`Finderを開く際にエラーが発生しました: ${err.message || ""}`); //エラーメッセージは表示しない
-                 // エラーを無視。ただし、デバッグ用にコンソールには出力
-            }
-            if (stderr){
-                console.error("stderr:", stderr);  // stderr もコンソールに出力
-            }
-        });
+        executeCommand(command);
     }
 }
 
@@ -80,9 +79,8 @@ const ERROR_MESSAGES = {
     NO_ACTIVE_EDITOR: "アクティブなエディタが見つかりません。",
     NO_VALID_PATH: "有効なファイルパスを選択してください。",
     PATH_NOT_EXISTS: "指定されたパスは存在しません。",
-    TXT_FILE_OPEN_ERROR: "txtファイルを開く際にエラーが発生しました。"
+    TEXT_FILE_OPEN_ERROR: "テキストファイルを開く際にエラーが発生しました：",
 };
-
 
 export async function activate(context: vscode.ExtensionContext) {
     let disposable = vscode.commands.registerCommand('extension.openInExplorer', async () => {
@@ -105,34 +103,10 @@ export async function activate(context: vscode.ExtensionContext) {
             return;
         }
 
-        const validationError = platformHandler.validatePath(selectedText);
-        if (validationError) {
-            vscode.window.showErrorMessage(validationError);
-            return;
-        }
-
+        // fs.stat により存在確認と情報取得
+        let stats;
         try {
-            await fs.access(selectedText);
-            const stats = await fs.stat(selectedText);
-            const isFile = stats.isFile();
-
-            // 拡張子が .txt かどうかをチェック
-            if (isFile && path.extname(selectedText).toLowerCase() === '.txt') {
-                // VS Code でファイルとして開く
-                const uri = vscode.Uri.file(selectedText);
-                try {
-                    const document = await vscode.workspace.openTextDocument(uri);
-                    await vscode.window.showTextDocument(document, { preview: false, viewColumn: vscode.ViewColumn.Active }); //既存のタブの横に開く
-                }
-                catch(error: any){
-                     vscode.window.showErrorMessage(ERROR_MESSAGES.TXT_FILE_OPEN_ERROR + error.message);
-                }
-
-            } else {
-                // .txtでなければ、OSの既定のプログラムで開く。
-                platformHandler.openPath(selectedText, isFile);
-            }
-
+            stats = await fs.stat(selectedText);
         } catch (error: any) {
             if (error.code === 'ENOENT') {
                 vscode.window.showErrorMessage(ERROR_MESSAGES.PATH_NOT_EXISTS);
@@ -142,6 +116,37 @@ export async function activate(context: vscode.ExtensionContext) {
             return;
         }
 
+        const isFile = stats.isFile();
+
+        // ファイルの場合の処理
+        if (isFile) {
+            // 拡張子がなければ、OSのエクスプローラ/Finderで開く（フォルダ扱い）
+            if (path.extname(selectedText) === "") {
+                platformHandler.openPath(selectedText, isFile);
+                return;
+            }
+
+            // 拡張子がある場合、テキストファイルならVSCodeで開く
+            try {
+                const textFile = await isTextFile(selectedText);
+                if (textFile) {
+                    const uri = vscode.Uri.file(selectedText);
+                    try {
+                        const document = await vscode.workspace.openTextDocument(uri);
+                        await vscode.window.showTextDocument(document, { preview: false, viewColumn: vscode.ViewColumn.Active });
+                        return;
+                    } catch (error: any) {
+                        vscode.window.showErrorMessage(ERROR_MESSAGES.TEXT_FILE_OPEN_ERROR + (error.message || ""));
+                        return;
+                    }
+                }
+            } catch (error) {
+                console.error("テキストファイル判定エラー:", error);
+            }
+        }
+
+        // フォルダの場合、またはテキストファイルでない場合はOSのエクスプローラ/Finderで開く
+        platformHandler.openPath(selectedText, isFile);
     });
 
     context.subscriptions.push(disposable);
