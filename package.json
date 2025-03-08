@@ -2,7 +2,7 @@
   "name": "open-in-explorer",
   "displayName": "open-in-explorer",
   "description": "",
-  "version": "0.0.8",
+  "version": "0.1.0",
   "publisher": "Takashivscode",
   "repository": {
     "type": "git",
@@ -22,16 +22,69 @@
       {
         "command": "extension.openInExplorer",
         "title": "エクスプローラーで開く"
+      },
+      {
+        "command": "extension.showPathOpenerReadme",
+        "title": "open-in-explorer: READMEを表示"
       }
     ],
-      "menus": {
-        "editor/context": [
-          {
-            "command": "extension.openInExplorer",
-            "when": "editorHasSelection"
-          }
-        ]
-      }      
+    "configuration": {
+      "title": "Open In Explorer",
+      "properties": {
+        "openInExplorer.customExplorerWindows": {
+          "type": "string",
+          "default": "",
+          "description": "Windowsで使用するカスタムファイルエクスプローラーコマンド"
+        },
+        "openInExplorer.customExplorerMacOS": {
+          "type": "string",
+          "default": "",
+          "description": "macOSで使用するカスタムファイルエクスプローラーコマンド"
+        },
+        "openInExplorer.customExplorerLinux": {
+          "type": "string",
+          "default": "",
+          "description": "Linuxで使用するカスタムファイルエクスプローラーコマンド"
+        },
+        "openInExplorer.textFileScanBytes": {
+          "type": "number",
+          "default": 512,
+          "description": "テキストファイル判定に使用するバイト数"
+        },
+        "openInExplorer.largeFileSizeLimit": {
+          "type": "number",
+          "default": 5242880,
+          "description": "大きなファイルの閾値（バイト単位、デフォルトは5MB）"
+        },
+        "openInExplorer.confirmLargeFileOpen": {
+          "type": "boolean",
+          "default": true,
+          "description": "大きなファイルを開く前に確認ダイアログを表示するかどうか"
+        },
+        "openInExplorer.allowRelativePaths": {
+          "type": "boolean",
+          "default": false,
+          "description": "相対パスの使用を許可するかどうか"
+        }
+      }
+    },
+    "menus": {
+      "editor/context": [
+        {
+          "command": "extension.openInExplorer",
+          "when": "editorHasSelection",
+          "group": "navigation"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "extension.openInExplorer",
+        "key": "ctrl+alt+o",
+        "mac": "cmd+alt+o",
+        "when": "editorHasSelection"
+      }
+    ]
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
