@@ -538,13 +538,23 @@ export async function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(disposable);
     
     // README表示コマンドの登録
-    const showReadmeCommand = vscode.commands.registerCommand('extension.showPathOpenerReadme', () => {
-        const readmePath = path.join(context.extensionPath, 'README.md');
-        const readmeUri = vscode.Uri.file(readmePath);
-        
-        vscode.workspace.openTextDocument(readmeUri)
-            .then(doc => vscode.window.showTextDocument(doc))
-            .catch(err => handleError('READMEを開けませんでした', err));
+    const showReadmeCommand = vscode.commands.registerCommand('extension.showOpenInExplorerReadme', async () => {
+        try {
+            const readmePath = path.join(context.extensionPath, 'README.md');
+            
+            // READMEファイルの存在確認
+            const exists = await fileExists(readmePath);
+            if (!exists) {
+                vscode.window.showInformationMessage('README.mdファイルが見つかりません。');
+                return;
+            }
+            
+            const readmeUri = vscode.Uri.file(readmePath);
+            const doc = await vscode.workspace.openTextDocument(readmeUri);
+            await vscode.window.showTextDocument(doc);
+        } catch (err) {
+            handleError('READMEを開けませんでした', err);
+        }
     });
     
     context.subscriptions.push(showReadmeCommand);
