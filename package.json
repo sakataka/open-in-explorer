@@ -2,7 +2,7 @@
   "name": "open-in-explorer",
   "displayName": "open-in-explorer",
   "description": "",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "publisher": "Takashivscode",
   "repository": {
     "type": "git",
@@ -21,11 +21,11 @@
     "commands": [
       {
         "command": "extension.openInExplorer",
-        "title": "エクスプローラーで開く"
+        "title": "エクスプローラーで開く / Open in Explorer"
       },
       {
         "command": "extension.showPathOpenerReadme",
-        "title": "open-in-explorer: READMEを表示"
+        "title": "open-in-explorer: READMEを表示 / Show README"
       }
     ],
     "configuration": {
@@ -34,37 +34,48 @@
         "openInExplorer.customExplorerWindows": {
           "type": "string",
           "default": "",
-          "description": "Windowsで使用するカスタムファイルエクスプローラーコマンド"
+          "description": "Windowsで使用するカスタムファイルエクスプローラーコマンド / Custom file explorer command for Windows"
         },
         "openInExplorer.customExplorerMacOS": {
           "type": "string",
           "default": "",
-          "description": "macOSで使用するカスタムファイルエクスプローラーコマンド"
+          "description": "macOSで使用するカスタムファイルエクスプローラーコマンド / Custom file explorer command for macOS"
         },
         "openInExplorer.customExplorerLinux": {
           "type": "string",
           "default": "",
-          "description": "Linuxで使用するカスタムファイルエクスプローラーコマンド"
+          "description": "Linuxで使用するカスタムファイルエクスプローラーコマンド / Custom file explorer command for Linux"
         },
         "openInExplorer.textFileScanBytes": {
           "type": "number",
-          "default": 512,
-          "description": "テキストファイル判定に使用するバイト数"
+          "default": 4096,
+          "description": "テキストファイル判定に使用するバイト数 / Number of bytes to use for text file detection"
         },
         "openInExplorer.largeFileSizeLimit": {
           "type": "number",
           "default": 5242880,
-          "description": "大きなファイルの閾値（バイト単位、デフォルトは5MB）"
+          "description": "大きなファイルの閾値（バイト単位、デフォルトは5MB） / Large file threshold (in bytes, default is 5MB)"
         },
         "openInExplorer.confirmLargeFileOpen": {
           "type": "boolean",
           "default": true,
-          "description": "大きなファイルを開く前に確認ダイアログを表示するかどうか"
+          "description": "大きなファイルを開く前に確認ダイアログを表示するかどうか / Whether to show a confirmation dialog before opening large files"
         },
         "openInExplorer.allowRelativePaths": {
           "type": "boolean",
           "default": false,
-          "description": "相対パスの使用を許可するかどうか"
+          "description": "相対パスの使用を許可するかどうか / Whether to allow the use of relative paths"
+        },
+        "openInExplorer.language": {
+          "type": "string",
+          "enum": ["ja", "en"],
+          "default": "ja",
+          "description": "拡張機能で使用する言語 / Language to use in the extension"
+        },
+        "openInExplorer.followSymlinks": {
+          "type": "boolean",
+          "default": true,
+          "description": "シンボリックリンクを自動的に追跡するかどうか / Whether to automatically follow symbolic links"
         }
       }
     },
